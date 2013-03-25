@@ -90,7 +90,8 @@
   [gs & body]
   (let [redefs (map (fn [g] `(trace-goal-ctor ~(resolve g))) gs)
         bindings (interleave gs redefs)]
-    `(with-redefs ~bindings ~@body)))
+    `(binding [*node-counter* (atom 0)]
+       (with-redefs ~bindings ~@body))))
 
 (defmacro with-hooks
   [gs fin fout & body]
