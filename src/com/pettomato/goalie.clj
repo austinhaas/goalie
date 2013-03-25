@@ -44,9 +44,9 @@
 ;; BUG: Once mzero is returned, we lose the ability to pass our
 ;; tracing functionality back up the chain. We can still call
 ;; run-out-hooks and get some useful information, but we won't have a
-;; valid :prev field since there is no stream carrying the previous
-;; node. Maybe there are clever ways to work around that, but I have a
-;; hard time believing that would be the best solution.
+;; valid :prev field since there is no stream to carry the info. Maybe
+;; there are clever ways to work around that, but I have a hard time
+;; believing that would be the best solution.
 
 (defn wrap-astream [as gvar args id]
   (cond
