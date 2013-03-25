@@ -14,23 +14,17 @@
 
 ;; Convenient constructors.
 
-;; Technical detail: mk-node-out exploits the fact that we must
-;; propagate the :in node in order to know where we are if the goal
-;; returns nil (aka, mzero), so we just use it as a data source to
-;; populate the out node.
-
 (def ^:dynamic *node-counter* (atom 0))
 
-(defn mk-node-in [a gvar args]
-  (let [id (swap! *node-counter* inc)
-        prev (get-node a)
+(defn mk-node-in [a gvar args id]
+  (let [prev (get-node a)
         parent (if (in-node? prev) prev (:parent (:parent prev)))]
     (mk-node parent prev :in gvar args a id)))
 
-(defn mk-node-out [as node-in]
-  (let [{:keys [gvar args id]} node-in
-        prev (get-node as)]
-    (mk-node node-in prev :out gvar args as id)))
+(defn mk-node-out [a gvar args id]
+  (let [prev (get-node a)
+        parent (if (in-node? prev) prev (:parent (:parent prev)))]
+    (mk-node parent prev :out gvar args a id)))
 
 ;;; Hooks
 
@@ -47,20 +41,27 @@
 
 ;;; Instrumentation
 
-(defn wrap-astream [as node]
+;; BUG: Once mzero is returned, we lose the ability to pass our
+;; tracing functionality back up the chain. We can still call
+;; run-out-hooks and get some useful information, but we won't have a
+;; valid :prev field since there is no stream carrying the previous
+;; node. Maybe there are clever ways to work around that, but I have a
+;; hard time believing that would be the best solution.
+
+(defn wrap-astream [as gvar args id]
   (cond
    ;; mzero
-   (nil? as)                    (let [node2 (mk-node-out as node)]
+   (nil? as)                    (let [node2 (mk-node-out as gvar args id)]
                                   (run-out-hooks node2)
                                   as)
    ;; inc
-   (fn? as)                     (fn [] (wrap-astream (as) node))
+   (fn? as)                     (fn [] (wrap-astream (as) gvar args id))
    ;; unit
-   (instance? Substitutions as) (let [node2 (mk-node-out as node)]
+   (instance? Substitutions as) (let [node2 (mk-node-out as gvar args id)]
                                   (run-out-hooks node2)
                                   (set-node as node2))
    ;; choice
-   (instance? Choice as)        (bind as (fn [as] (wrap-astream as node)))
+   (instance? Choice as)        (bind as (fn [as] (wrap-astream as gvar args id)))
    ;; none of the above
    :else (throw (Error. (str "wrap-astream doesn't know how to handle: " as)))))
 
@@ -75,13 +76,14 @@
     (assert (not (::traced (meta @gvar))) (format "Only trace once: %s" gvar))
     (with-meta
       (fn [& args]
-        (let [g (apply f args)]
+        (let [g (apply f args)
+              id (swap! *node-counter* inc)]
           (fn [a]
-            (let [node (mk-node-in a gvar args)]
+            (let [node (mk-node-in a gvar args id)]
               (run-in-hooks node)
               (let [a2 (set-node a node)
                     as (g a2)]
-                (wrap-astream as node))))))
+                (wrap-astream as gvar args id))))))
       {::traced true})))
 
 ;;;; Public API
