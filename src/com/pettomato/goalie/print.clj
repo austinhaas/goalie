@@ -15,7 +15,8 @@
         name (:name (meta gvar))
         arglist (arglist gvar args)
         header (str name " " arglist)
-        prefix (format "%05d %s" id (rstr (depth node) "|  "))]
+        prev-id (:id (:prev node))
+        prefix (format "%05d:%05d %s" prev-id id (rstr (depth node) "|  "))]
     (printf "%s@ %s\n" prefix header)
     (when-not (empty? arglist)
       (let [rs (walk*-all a args)
@@ -28,7 +29,8 @@
   {:pre [(out-node? node)]}
   (let [{:keys [gvar args a id]} node
         arglist (arglist gvar args)
-        prefix (format "%05d %s" id (rstr (depth node) "|  "))]
+        prev-id (:id (:prev node))
+        prefix (format "%05d:%05d %s" prev-id id (rstr (depth node) "|  "))]
     (cond
      (nil? a) (printf "%s|-> FAIL\n" prefix)
 
