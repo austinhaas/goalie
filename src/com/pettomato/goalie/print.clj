@@ -28,9 +28,12 @@
 (defn print-node-out [node]
   {:pre [(out-node? node)]}
   (let [{:keys [gvar args a id]} node
+        name (:name (meta gvar))
         arglist (arglist gvar args)
+        header (str name " " arglist)
         prev-id (:id (:prev node))
         prefix (format "%05d:%05d %s" prev-id id (rstr (depth node) "|  "))]
+    (printf "%s|->@ %s\n" prefix header)
     (cond
      (nil? a) (printf "%s|-> FAIL\n" prefix)
 
@@ -38,10 +41,10 @@
 
      :else (let [r1 (walk*-all (:a (:parent node)) args)
                  r2 (walk*-all a args)]
-             (printf "%s|-> %s %s %s\n"
-                     prefix (first arglist) (if (= (first r1) (first r2)) ":" "#") (pr-str (first r2)))
+             (printf "%s%s %s : %s\n"
+                     prefix (if (= (first r1) (first r2)) "|->" "$->")(first arglist) (pr-str (first r2)))
              (doall (map (fn [k old new]
-                           (printf "%s|-> %s %s %s\n" prefix k (if (= old new) ":" "#") (pr-str new)))
+                           (printf "%s%s %s : %s\n" prefix (if (= old new) "|->" "$->") k (pr-str new)))
                          (rest arglist) (rest r1) (rest r2)))))))
 
 (defn print-node [node]
