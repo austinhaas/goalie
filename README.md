@@ -64,6 +64,8 @@ instrumented.
 
 ## Caveats, Warnings, To do
 
+Document the map that is passed to hooks.
+
 I need to explain the output from print-node, but I haven't settled on
 that.
 
