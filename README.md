@@ -24,12 +24,15 @@ The design constraints are:
 
     (with-traced-goals [membero conso]       ; The goals to instrument, e.g., show up in stacktraces.
       (with-hooks [membero]                  ; The goals to add hooks to.
-        print-node                           ; Included handler; prints debug info.
+        print-node                           ; Included hook; prints debug info.
         print-node
 
         (doall (run* [q] (membero q [1 2]))) ; Eval just this, if you don't need to trace.
 
         ))
+
+    ;; Note that conso doesn't show up, because core.logic doesn't define membero in terms of conso.
+    ;; I need a better example.
 
 ### Example usage scenarios:
 
@@ -40,7 +43,7 @@ The design constraints are:
     report which logic variables took on new assignments during the
     computation of that goal.
 
-  - Throw an error anytime a goal is invoked with only unground
+  - Throw an error any time a goal is invoked with only nonground
     arguments, and include a stacktrace of the path from the offending
     node back up to the outermost instrumented goal.
 
