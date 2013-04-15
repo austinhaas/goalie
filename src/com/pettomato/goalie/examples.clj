@@ -53,6 +53,13 @@
 
 (comment
 
+  ;; You should evaluate each of the following expressions
+  ;; interactively and look for output in the REPL.
+
+  (clojure.repl/doc with-traced-goals)
+
+  (clojure.repl/doc with-hooks)
+
   ;; This will print out all the data we use to trace membero every
   ;; time it is called and every time it produces a new value.
 
@@ -63,8 +70,15 @@
       (doall (run* [q] (membero q [1 2])))))
 
   ;; We can try to format that output a little better. We walk the
-  ;; input args and display the result. When we print :out nodes, we
-  ;; use a # instead of a : to highlight which args were constrained.
+  ;; input args and display the result. When we print out nodes, we
+  ;; add a '$' to highlight which args were constrained.
+
+  ;; The numbers at the beginning of each line indicate the id of the
+  ;; previous node on the branch, then a ':', and then the id of the
+  ;; current node. We need to know the previous node id to follow a
+  ;; single branch in the interleaving search. Note that failed goals
+  ;; always show the id of their parent, rather than the previous
+  ;; node.
 
   ;; Note that the FAILs you see at the end are due to the system
   ;; attempting to get a 3rd value for q and failing.
@@ -129,21 +143,21 @@
            (== q [a b 3])
            (membero c q))))))
 
-  ;; If the goal is called with only unground args, print out the path to
+  ;; If the goal is called with only nonground args, print out the path to
   ;; the goal, then throw an exception to avoid a stack overflow.
 
-  (defn all-unground? [a args]
+  (defn all-nonground? [a args]
     (every? (comp l/lvar? (partial l/walk* a)) args))
 
-  (defn warn-on-unground-args [b]
+  (defn warn-on-nonground-args [b]
     (let [{:keys [gvar args a]} b]
-      (when (all-unground? a args)
+      (when (all-nonground? a args)
         (print-path (path b))
         (throw (Error. (format "All args to %s were fresh." (:name (meta gvar))))))))
 
   (with-traced-goals [emptyo conso pairo appendo flatteno]
     (with-hooks [flatteno]
-      warn-on-unground-args
+      warn-on-nonground-args
       (constantly nil)
       (doall (run* [q] (fresh [a] (flatteno [1 2 a] q))))))
 
@@ -160,15 +174,15 @@
   ;; to throw a different exception.
   ;;   https://github.com/mmcgrana/clj-stacktrace/issues/20
 
-  (defn stacktrace-on-unground-args [b]
+  (defn stacktrace-on-nonground-args [b]
     (let [{:keys [gvar args a]} b]
-      (when (all-unground? a args)
+      (when (all-nonground? a args)
         (throw (doto (Error. (format "All args to %s were fresh." (:name (meta gvar))))
                  (.setStackTrace (stacktrace b)))))))
 
   (with-traced-goals [membero]
     (with-hooks [membero]
-      stacktrace-on-unground-args
+      stacktrace-on-nonground-args
       (constantly nil)
       (doall (run* [q] (fresh [a] (membero q a))))))
 
