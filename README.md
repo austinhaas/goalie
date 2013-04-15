@@ -31,8 +31,8 @@ The design constraints are:
 
         ))
 
-    ;; Note that conso doesn't show up, because core.logic doesn't define membero in terms of conso.
-    ;; I need a better example.
+    ;; This isn't a very good example, because core.logic doesn't define membero using conso,
+    ;; and even if it did, this example wouldn't demonstrate any reason for conso to be traced.
 
 ### Example usage scenarios:
 
