@@ -21,9 +21,14 @@
         parent (if (in-node? prev) prev (:parent (:parent prev)))]
     (mk-node parent prev :in gvar args a id)))
 
-(defn mk-node-out [a gvar args id]
-  (let [prev (get-node a)
-        parent (if (in-node? prev) prev (:parent (:parent prev)))]
+(defn mk-node-out [a gvar args id parent-node]
+  ;; parent-node is a hack to provide context when a branch fails.
+  (let [prev (if a
+               (get-node a)
+               parent-node)
+        parent (if a
+                 (if (in-node? prev) prev (:parent (:parent prev)))
+                 parent-node)]
     (mk-node parent prev :out gvar args a id)))
 
 ;;; Hooks
@@ -42,28 +47,28 @@
 ;;; Instrumentation
 
 ;; BUG: Once mzero is returned, we lose the ability to pass our
-;; tracing functionality back up the chain. We can still call
+;; tracing functionality back up the branch. We can still call
 ;; run-out-hooks and get some useful information, but we won't have a
 ;; valid :prev field since there is no stream to carry the info. Maybe
 ;; there are clever ways to work around that, but I have a hard time
 ;; believing that would be the best solution.
 
-(defn wrap-astream [as gvar args id]
+(defn wrap-astream [as gvar args id parent-node]
   (cond
    ;; mzero
-   (nil? as)                    (let [node2 (mk-node-out as gvar args id)]
+   (nil? as)                    (let [node2 (mk-node-out as gvar args id parent-node)]
                                   (run-out-hooks node2)
                                   as)
    ;; inc
-   (fn? as)                     (fn [] (wrap-astream (as) gvar args id))
+   (fn? as)                     (fn [] (wrap-astream (as) gvar args id parent-node))
    ;; unit
-   (instance? Substitutions as) (let [node2 (mk-node-out as gvar args id)]
+   (instance? Substitutions as) (let [node2 (mk-node-out as gvar args id parent-node)]
                                   (run-out-hooks node2)
                                   (set-node as node2))
    ;; choice
-   (instance? Choice as)        (bind as (fn [as] (wrap-astream as gvar args id)))
+   (instance? Choice as)        (bind as (fn [as] (wrap-astream as gvar args id parent-node)))
    ;; none of the above
-   :else (throw (Error. (str "wrap-astream doesn't know how to handle: " as)))))
+   :else (throw (Error. (str "wrap-astream doesn't know how to handle: " (class as))))))
 
 (defn trace-goal-ctor
   "Returns an instrumented replacement for the goal constructor bound to gvar."
@@ -83,7 +88,7 @@
               (run-in-hooks node)
               (let [a2 (set-node a node)
                     as (g a2)]
-                (wrap-astream as gvar args id))))))
+                (wrap-astream as gvar args id node))))))
       {::traced true})))
 
 ;;;; Public API
