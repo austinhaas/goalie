@@ -61,16 +61,15 @@ core.logic's implementation, But I found myself using it a lot
 (especially when I know what I'm looking for). I think its main virtue
 is that it can be more effective than adding print statements. Another
 valuable feature is triggering an error when a program diverges and
-having access to the entire branch. Finally, I've found it helpful to
-inspect the shape of the search by selecting which goals are
-instrumented.
+having access to the entire branch, in isolation. Finally, I've found
+it helpful to inspect the shape of the search by selecting which goals
+are instrumented.
 
 ## Caveats, Warnings, To do
 
 Document the map that is passed to hooks.
 
-I need to explain the output from print-node, but I haven't settled on
-that.
+Document the output from print-node, but I haven't settled on that.
 
 When a goal on a branch fails, it short-ciruits and we lose the
 ability to propagate information about the search. Currently, there is
