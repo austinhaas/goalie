@@ -94,6 +94,28 @@
 ;;;; Public API
 
 (defmacro with-traced-goals
+  "gs is a vector of symbols naming goals. This macro establishes the
+  dynamic scope under which the supplied goals will be included in the
+  instrumentation system. That means that you can add hooks to the
+  goals, and the goals will appear as nodes in the reified search
+  graph that is made available to hooks.
+
+  Without at least one with-hooks in body, this macro should have no
+  user visible effects.
+
+  Note that every goal mentioned in a with-hooks expression must be
+  included in an outer with-traced-goals expression, but not every
+  goal needs hooks. You may only want to add hooks to a single goal,
+  the one you think is misbehaving, but you want traces to include a
+  few auxiliary goals, so you include them in the with-traced-goals.
+
+  See with-hooks for more information.
+
+  Also see the examples in src/com/pettomato/goalie/examples.clj
+
+  WARNING: I'm not sure of the consequences of nested
+  with-traced-goals expressions. I'd stick to a single one that
+  mentions all of the goals of interest."
   [gs & body]
   (let [redefs (map (fn [g] `(trace-goal-ctor ~(resolve g))) gs)
         bindings (interleave gs redefs)]
@@ -101,6 +123,23 @@
        (with-redefs ~bindings ~@body))))
 
 (defmacro with-hooks
+  "gs is a vector of symbols naming goals. This macro establishes the
+  dynamic scope under which the supplied goals will be instrumented
+  with the supplied hooks.
+
+  Each time one of the supplied goals is first invoked, fin will be
+  passed a map containing various details about the current state of
+  the search. Likewise, fout will be called with a similar map each
+  time the goal produces a new value.
+
+  See with-traced-goals for more information.
+
+  Also see the examples in src/com/pettomato/goalie/examples.clj
+
+  WARNING: I'm not sure what happens right now if you include the same
+  goal in nested with-hooks expressions. Separate with-hooks with
+  different goals should be fine; that way you can add different hooks
+  to different goals."
   [gs fin fout & body]
   `(do
      ;; Assert that each goal is within the scope of a corresponding with-traced-goals.
